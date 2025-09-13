@@ -41,7 +41,15 @@ docker compose exec server bash -lc "alembic upgrade head"
 docker compose exec server bash -lc "python -m src.seeds"
 ```
 
-## Local Development (Without Docker)
+- Frontend: `http://localhost:3000`
+
+- Backend Docs (Swagger): `http://localhost:8000/docs`
+
+- Health Check: `GET http://localhost:8000/health` → `{"status":"ok"}`
+
+## 🧑‍💻 Local Development (without Docker)
+
+### Backend
 
 ```bash
 cd server
@@ -60,7 +68,7 @@ uvicorn src.main:app --reload --port 8000
 
 ```
 
-## Frontend
+### Frontend
 
 ```bash
 cd app
@@ -68,22 +76,22 @@ npm install
 npm run dev
 ```
 
-## Create **app/.env.local**:
+#### Create `app/.env.local`:
 
 ```ini
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-## Environment Variables
+## 🔧 Environment Variables
 
-server/.env.example
+### `server/.env.example`
 
 ```ini
 DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/todo
 CORS_ORIGINS=http://localhost:3000
 ```
 
-app/.env.local
+### `app/.env.local`
 
 ```ini
 NEXT_PUBLIC_API_URL=http://localhost:8000
@@ -102,7 +110,7 @@ docker compose exec server alembic upgrade head
 docker compose exec server python -m src.seeds
 ```
 
-## Testing
+## 🧪 Testing
 
 ```bash
 # Inside container
@@ -114,9 +122,9 @@ PYTHONPATH=server pytest -v server/tests
 
 Includes tests for:
 
-- GET /health
+- `GET /health`
 
-- POST /tasks
+- `POST /tasks`
 
 - CRUD operations
 
@@ -124,11 +132,11 @@ Includes tests for:
 
 - `GET /health` → `{"status":"ok"}`
 
-- `GET /tasks` → `List tasks`
+- `GET /tasks` → List tasks
 
-- `POST /tasks { "title": "..." }` → `201 + new task`
+- `POST /tasks { "title": "..." }` → 201 + new task
 
-- `DELETE /tasks/{id}` → `204`
+- `DELETE /tasks/{id}` → 204
 
 ### Examples
 
@@ -139,9 +147,23 @@ curl -s -X POST http://localhost:8000/tasks \
   -d '{"title":"Read docs"}' | jq
 ```
 
-## Architecture
+## 🧭 Architecture
 
-## Data Model (ERD)
+### Data Model (ERD)
+
+```mermaid
+erDiagram
+  TASK {
+    UUID id PK
+    TEXT title
+    BOOL completed
+    TIMESTAMPTZ created_at
+    TIMESTAMPTZ updated_at
+  }
+
+```
+
+## Client - Server
 
 ```mermaid
 flowchart LR
@@ -154,7 +176,58 @@ flowchart LR
   end
 ```
 
-## Request flow (create/list tasks)
+## Topology (who runs where)
+
+```mermaid
+flowchart LR
+ subgraph DevMachine["💻 Developer Machine (Host)"]
+        Browser["🧑‍💻 Browser"]
+        Next["🟦 Next.js (Node 20)\nPort 3000\nRuns outside Docker"]
+  end
+ subgraph Docker["🐳 Docker Compose (Local)"]
+        API["🟩 FastAPI (Python 3.13)\nUvicorn · Port 8000"]
+        DB["🟨 PostgreSQL 16\nPort 5432"]
+        Vol["💾 Volume: pgdata"]
+  end
+    Next -- "REST calls (fetch/axios)\nNEXT_PUBLIC_API_URL=http:// localhost:8000" --> API
+    API -- SQLAlchemy queries --> DB
+    DB -- Persistent storage --> Vol
+    Browser --> Next
+```
+
+### Logical layers
+
+```mermaid
+flowchart TB
+  subgraph Frontend["Next.js (React + TS)"]
+    Components["Components\n(TaskForm, TaskList)"]
+    RQ["React Query\n(QueryClient)"]
+    ApiClient["API Client (axios)\n/lib/api.ts"]
+    Components --> RQ --> ApiClient
+  end
+
+  subgraph Backend["FastAPI (Python)"]
+    Routers["Routers\n(routers/tasks.py)"]
+    Schemas["Pydantic Schemas\n(schemas.py)"]
+    Models["SQLAlchemy Models\n(models.py)"]
+    Session["DB Session\n(db.py → SessionLocal)"]
+    Alembic["Alembic\n(migrations)"]
+    Routers --> Schemas
+    Routers --> Models
+    Routers --> Session
+    Alembic --> Models
+  end
+
+  subgraph Data["PostgreSQL 16"]
+    TasksTable["Table: tasks\n(id, title, completed, created_at, updated_at)"]
+  end
+
+  ApiClient --> Routers
+  Models --> TasksTable
+
+```
+
+### Request flow (create/list tasks)
 
 ```mermaid
 sequenceDiagram
@@ -172,7 +245,7 @@ sequenceDiagram
 
 ```
 
-## Useful Commands
+## 🛠️ Useful Commands
 
 ```bash
 # Root
@@ -187,12 +260,12 @@ docker compose exec server python -m pytest -v
 cd app && npm run dev
 ```
 
-## Troubleshooting
+## 🩹 Troubleshooting
 
-- Port 5432 already in use: change to 5433:5432 in docker-compose.yml or stop local Postgres.
+- Port 5432 already in use: change to `5433:5432` in `docker-compose.yml` or stop local Postgres.
 
-- CORS errors: check CORS_ORIGINS=http://localhost:3000.
+- CORS errors: check `CORS_ORIGINS=http://localhost:3000`.
 
-- Tailwind v4 issues: ensure @import "tailwindcss"; and PostCSS config includes @tailwindcss/postcss.
+- Tailwind v4 issues: ensure `@import "tailwindcss";` and PostCSS config includes `@tailwindcss/postcss`.
 
-- httpx test errors: use ASGITransport(app=app) (httpx ≥ 0.28).
+- httpx test errors: use `ASGITransport(app=app)` (httpx ≥ 0.28).
