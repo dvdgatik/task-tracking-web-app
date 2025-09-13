@@ -122,15 +122,13 @@ Includes tests for:
 
 ## API Endpoints (summary)
 
-- GET /health → {"status":"ok"}
+- `GET /health` → `{"status":"ok"}`
 
-- GET /tasks → List tasks
+- `GET /tasks` → `List tasks`
 
-- POST /tasks { "title": "..." } → 201 + new task
+- `POST /tasks { "title": "..." }` → `201 + new task`
 
-- PATCH /tasks/{id} { "title"?, "completed"? }
-
-- DELETE /tasks/{id} → 204
+- `DELETE /tasks/{id}` → `204`
 
 ### Examples
 
@@ -156,6 +154,24 @@ flowchart LR
   end
 ```
 
+## Request flow (create/list tasks)
+
+```mermaid
+sequenceDiagram
+  participant User as 👤 User (Browser)
+  participant Next as 🟦 Next.js (Frontend - Host)
+  participant API as 🟩 FastAPI (Backend - Docker)
+  participant DB as 🟨 PostgreSQL (Docker)
+
+  User->>Next: Click "Add" / load page
+  Next->>API: POST /tasks {"title":"..."} / GET /tasks
+  API->>DB: INSERT / SELECT via SQLAlchemy
+  DB-->>API: Affected rows / task list
+  API-->>Next: 201 Created / 200 OK (JSON)
+  Next-->>User: Update UI (React Query invalidates/refetches)
+
+```
+
 ## Useful Commands
 
 ```bash
@@ -173,10 +189,10 @@ cd app && npm run dev
 
 ## Troubleshooting
 
-Port 5432 already in use: change to 5433:5432 in docker-compose.yml or stop local Postgres.
+- Port 5432 already in use: change to 5433:5432 in docker-compose.yml or stop local Postgres.
 
-CORS errors: check CORS_ORIGINS=http://localhost:3000.
+- CORS errors: check CORS_ORIGINS=http://localhost:3000.
 
-Tailwind v4 issues: ensure @import "tailwindcss"; and PostCSS config includes @tailwindcss/postcss.
+- Tailwind v4 issues: ensure @import "tailwindcss"; and PostCSS config includes @tailwindcss/postcss.
 
-httpx test errors: use ASGITransport(app=app) (httpx ≥ 0.28).
+- httpx test errors: use ASGITransport(app=app) (httpx ≥ 0.28).
