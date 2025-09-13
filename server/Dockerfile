@@ -18,5 +18,6 @@ RUN python -m pip install --upgrade pip && pip install -r /tmp/requirements.txt
 COPY src /app/src
 COPY alembic /app/alembic
 COPY alembic.ini /app/alembic.ini
+COPY tests /app/tests
 
 CMD ["uvicorn","src.main:app","--host","0.0.0.0","--port","8000","--reload"]

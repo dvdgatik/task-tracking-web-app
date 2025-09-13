@@ -10,3 +10,11 @@ dependencies = [
   "alembic==1.13.*",
   "psycopg[binary,pool]==3.*"
 ]
+
+# 👇 nuevo
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.28"
+]
